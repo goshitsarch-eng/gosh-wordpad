@@ -1,0 +1,72 @@
+{
+  "name": "gosh-wordpad-clone",
+  "version": "1.0.0",
+  "description": "A faithful clone of Windows 98 WordPad built with React and Electron",
+  "type": "module",
+  "main": "dist-electron/main.js",
+  "homepage": "https://github.com/goshitsarch-eng/Gosh-Wordpad-Clone",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/goshitsarch-eng/Gosh-Wordpad-Clone.git"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "electron:dev": "vite build && electron .",
+    "electron:build": "vite build && electron-builder"
+  },
+  "keywords": [
+    "wordpad",
+    "windows98",
+    "electron",
+    "react",
+    "text-editor",
+    "rich-text"
+  ],
+  "author": "Goshitsarch",
+  "license": "MIT",
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.5.2",
+    "electron": "^35.2.1",
+    "electron-builder": "^26.0.12",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  },
+  "build": {
+    "appId": "com.goshitsarch.wordpad",
+    "productName": "Gosh WordPad",
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "icon": "build/icon.png",
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.icns"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ],
+      "icon": "build/icons",
+      "desktop": {
+        "StartupWMClass": "gosh-wordpad-clone"
+      }
+    }
+  }
+}

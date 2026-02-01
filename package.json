@@ -1,6 +1,6 @@
 {
   "name": "gosh-wordpad-clone",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "A faithful clone of Windows 98 WordPad built with React and Electron",
   "type": "module",
   "main": "dist-electron/main.js",
@@ -12,8 +12,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && tsc -p tsconfig.electron.json",
-    "electron:dev": "vite build && electron .",
-    "electron:build": "vite build && electron-builder"
+    "electron:dev": "vite build && tsc -p tsconfig.electron.json && electron .",
+    "electron:build": "npm run build && electron-builder"
   },
   "keywords": [
     "wordpad",

@@ -23,7 +23,10 @@
     "text-editor",
     "rich-text"
   ],
-  "author": "Goshitsarch",
+  "author": {
+    "name": "Goshitsarch",
+    "email": "goshitsarch@users.noreply.github.com"
+  },
   "license": "MIT",
   "dependencies": {
     "react": "^19.1.0",

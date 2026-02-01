@@ -65,10 +65,7 @@
         "rpm",
         "tar.gz"
       ],
-      "icon": "build/icons",
-      "desktop": {
-        "StartupWMClass": "gosh-wordpad-clone"
-      }
+      "icon": "build/icons"
     }
   }
 }

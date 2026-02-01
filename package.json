@@ -57,11 +57,13 @@
       "target": "dmg",
       "icon": "build/icon.icns"
     },
+    "publish": null,
     "linux": {
       "target": [
         "AppImage",
         "deb",
-        "rpm"
+        "rpm",
+        "tar.gz"
       ],
       "icon": "build/icons",
       "desktop": {

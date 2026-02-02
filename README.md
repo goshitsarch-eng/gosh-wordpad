@@ -10,7 +10,7 @@ Gosh WordPad replicates the look and feel of the original — authentic 3D borde
 
 ## Getting Started
 
-Requires **Node.js 18+**.
+Requires **Node.js 24.13+**.
 
 ```bash
 git clone https://github.com/goshitsarch-eng/Gosh-Wordpad-Clone.git

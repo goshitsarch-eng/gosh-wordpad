@@ -5,7 +5,7 @@ This document covers building, signing, and distributing WordPad 98 for macOS.
 ## Prerequisites
 
 - macOS with Xcode Command Line Tools
-- Node.js 18+
+- Node.js 24.13+
 - Apple Developer account (for signing/notarization)
 - Developer ID Application certificate installed in Keychain
 

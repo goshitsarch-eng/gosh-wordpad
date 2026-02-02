@@ -73,13 +73,23 @@ export default function ReplaceDialog() {
     if (!findInput) return
     const editor = document.getElementById('editor')
     if (!editor) return
-    const content = editor.innerHTML
     let flags = 'g'
     if (!matchCase) flags += 'i'
-    const regex = new RegExp(escapeRegExp(findInput), flags)
-    const newContent = content.replace(regex, replaceInput)
-    if (newContent !== content) {
-      editor.innerHTML = newContent
+    const escapedFind = escapeRegExp(findInput)
+    const pattern = wholeWord ? `\\b${escapedFind}\\b` : escapedFind
+    const regex = new RegExp(pattern, flags)
+    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT)
+    let didReplace = false
+    while (walker.nextNode()) {
+      const node = walker.currentNode as Text
+      const original = node.textContent ?? ''
+      const updated = original.replace(regex, replaceInput)
+      if (updated !== original) {
+        node.textContent = updated
+        didReplace = true
+      }
+    }
+    if (didReplace) {
       docDispatch({ type: 'MARK_MODIFIED' })
     }
   }

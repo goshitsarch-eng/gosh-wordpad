@@ -1,6 +1,6 @@
 {
   "name": "gosh-wordpad-clone",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "description": "A faithful clone of Windows 98 WordPad built with React and Electron",
   "type": "module",
   "main": "dist-electron/main.js",

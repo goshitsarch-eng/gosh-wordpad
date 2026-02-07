@@ -1,11 +1,14 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import DialogBase from '@/components/ui/DialogBase'
 import Button from '@/components/ui/Button'
 import { useDialogStore } from '@/lib/stores/dialogs'
-import { editorActions, getFontSizeIndex } from '@/lib/stores/editor'
+import { useEditorStore, editorActions, getFontSizeIndex } from '@/lib/stores/editor'
+import { editorCommands } from '@/lib/editor-commands'
+import { focusEditor } from '@/lib/editor-ref'
+import { getAvailableFonts, FONT_SIZES } from '@/lib/fonts'
 
-const fonts = ['Arial','Times New Roman','Courier New','Georgia','Verdana','Comic Sans MS','Impact','Trebuchet MS','Tahoma','MS Sans Serif']
-const sizes = ['8','9','10','11','12','14','16','18','20','22','24','26','28','36','48','72']
+const fonts = getAvailableFonts()
+const sizes = FONT_SIZES
 const colors = [
   { value: '#000000', label: 'Black' }, { value: '#800000', label: 'Maroon' },
   { value: '#008000', label: 'Green' }, { value: '#808000', label: 'Olive' },
@@ -19,12 +22,28 @@ const colors = [
 
 export default function FontDialog() {
   const [dialogState, dialogDispatch] = useDialogStore()
+  const [editorState] = useEditorStore()
   const [fontFamily, setFontFamily] = useState('MS Sans Serif')
   const [fontStyle, setFontStyle] = useState('normal')
   const [fontSize, setFontSize] = useState('10')
   const [fontColor, setFontColor] = useState('#000000')
   const [strikeout, setStrikeout] = useState(false)
   const [underline, setUnderline] = useState(false)
+
+  useEffect(() => {
+    if (dialogState.font) {
+      setFontFamily(editorState.fontFamily || 'Arial')
+      setFontSize(editorState.fontSize || '10')
+      setFontColor(editorState.fontColor || '#000000')
+      setUnderline(editorState.isUnderline)
+      setStrikeout(editorState.isStrikethrough)
+      let style = 'normal'
+      if (editorState.isBold && editorState.isItalic) style = 'bold-italic'
+      else if (editorState.isBold) style = 'bold'
+      else if (editorState.isItalic) style = 'italic'
+      setFontStyle(style)
+    }
+  }, [dialogState.font])
 
   const sampleStyle = useMemo(() => ({
     fontFamily,
@@ -36,21 +55,21 @@ export default function FontDialog() {
   }), [fontFamily, fontStyle, fontSize, fontColor, strikeout, underline])
 
   function applyFontSettings() {
-    document.execCommand('fontName', false, fontFamily)
+    editorCommands.fontName(fontFamily)
     const sizeIndex = getFontSizeIndex(fontSize)
-    document.execCommand('fontSize', false, sizeIndex.toString())
-    document.execCommand('foreColor', false, fontColor)
-    const isBold = document.queryCommandState('bold')
-    if (fontStyle.includes('bold') !== isBold) document.execCommand('bold')
-    const isItalic = document.queryCommandState('italic')
-    if (fontStyle.includes('italic') !== isItalic) document.execCommand('italic')
-    const isUnderline = document.queryCommandState('underline')
-    if (underline !== isUnderline) document.execCommand('underline')
-    const isStrike = document.queryCommandState('strikeThrough')
-    if (strikeout !== isStrike) document.execCommand('strikeThrough')
+    editorCommands.fontSize(sizeIndex.toString())
+    editorCommands.foreColor(fontColor)
+    const isBold = editorCommands.queryState('bold')
+    if (fontStyle.includes('bold') !== isBold) editorCommands.bold()
+    const isItalic = editorCommands.queryState('italic')
+    if (fontStyle.includes('italic') !== isItalic) editorCommands.italic()
+    const isUnderline = editorCommands.queryState('underline')
+    if (underline !== isUnderline) editorCommands.underline()
+    const isStrike = editorCommands.queryState('strikeThrough')
+    if (strikeout !== isStrike) editorCommands.strikeThrough()
     editorActions.updateFormatState()
     dialogDispatch({ type: 'CLOSE', name: 'font' })
-    document.getElementById('editor')?.focus()
+    focusEditor()
   }
 
   const styleLabel = fontStyle === 'normal' ? 'Regular' : fontStyle === 'italic' ? 'Italic' : fontStyle === 'bold' ? 'Bold' : 'Bold Italic'

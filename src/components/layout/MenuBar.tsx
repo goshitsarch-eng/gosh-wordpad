@@ -1,10 +1,24 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useViewStore } from '@/lib/stores/view'
 import { useDialogStore } from '@/lib/stores/dialogs'
-import { useDocumentStore } from '@/lib/stores/document'
+import { useMessageStore } from '@/lib/stores/message'
 import { appAPI } from '@/lib/electron-api'
+import { editorCommands } from '@/lib/editor-commands'
+import { handleNewFile, handleOpenFile } from '@/lib/actions'
+import { platformShortcut } from '@/lib/platform'
 
-const menus = [
+type SeparatorItem = { separator: true }
+type ActionItem = { label: string; action?: string; shortcut?: string; disabled?: boolean }
+type CheckboxItem = { action: string; label: string; checkbox: true; checkedKey: 'toolbar' | 'formatBar' | 'ruler' | 'statusBar' | 'darkMode' }
+type MenuItem = SeparatorItem | ActionItem | CheckboxItem
+
+interface Menu {
+  id: string
+  label: string
+  items: MenuItem[]
+}
+
+const menus: Menu[] = [
   {
     id: 'file', label: 'File', items: [
       { action: 'new', label: 'New', shortcut: 'Ctrl+N' },
@@ -13,7 +27,6 @@ const menus = [
       { action: 'save-as', label: 'Save As...' },
       { separator: true },
       { action: 'print', label: 'Print...', shortcut: 'Ctrl+P' },
-      { action: 'print-preview', label: 'Print Preview' },
       { action: 'page-setup', label: 'Page Setup...' },
       { separator: true },
       { label: 'Send...', disabled: true },
@@ -74,25 +87,33 @@ const menus = [
       { action: 'about', label: 'About WordPad' }
     ]
   }
-] as const
+]
 
-type MenuItem = (typeof menus)[number]['items'][number]
+function getActionableItems(items: MenuItem[]): (ActionItem | CheckboxItem)[] {
+  return items.filter((item): item is ActionItem | CheckboxItem => !('separator' in item))
+}
 
 export default function MenuBar() {
   const [viewState, viewDispatch] = useViewStore()
   const [, dialogDispatch] = useDialogStore()
-  const [, docDispatch] = useDocumentStore()
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [menuBarActive, setMenuBarActive] = useState(false)
+  const [focusedMenuIndex, setFocusedMenuIndex] = useState(-1)
+  const [focusedItemIndex, setFocusedItemIndex] = useState(-1)
+  const menuLabelRefs = useRef<(HTMLSpanElement | null)[]>([])
+  const menuItemRefs = useRef<(HTMLDivElement | null)[]>([])
 
   function openMenu(menuId: string) {
     setActiveMenu(menuId)
     setMenuBarActive(true)
+    setFocusedItemIndex(-1)
   }
 
   function closeAllMenus() {
     setActiveMenu(null)
     setMenuBarActive(false)
+    setFocusedMenuIndex(-1)
+    setFocusedItemIndex(-1)
   }
 
   function handleMenuItemClick(menuId: string) {
@@ -107,38 +128,21 @@ export default function MenuBar() {
   async function handleAction(action: string | undefined) {
     if (!action) return
     switch (action) {
-      case 'new': {
-        const cleared = await appAPI.newFile()
-        if (cleared) {
-          const editor = document.getElementById('editor')
-          if (editor) editor.innerHTML = ''
-          docDispatch({ type: 'CLEAR' })
-        }
-        break
-      }
-      case 'open': {
-        const data = await appAPI.openFile()
-        if (data) {
-          const editor = document.getElementById('editor')
-          if (editor) editor.innerText = data.content
-          docDispatch({ type: 'SET_CONTENT', content: data.content, filePath: data.filePath })
-        }
-        break
-      }
+      case 'new': await handleNewFile(); break
+      case 'open': await handleOpenFile(); break
       case 'save': await appAPI.saveFile(); break
       case 'save-as': await appAPI.saveFileAs(); break
       case 'print': appAPI.print(); break
-      case 'print-preview': appAPI.printPreview(); break
       case 'page-setup': dialogDispatch({ type: 'OPEN', name: 'pageSetup' }); break
       case 'exit': await appAPI.exitApp(); break
-      case 'undo': document.execCommand('undo'); break
-      case 'redo': document.execCommand('redo'); break
-      case 'cut': document.execCommand('cut'); break
-      case 'copy': document.execCommand('copy'); break
-      case 'paste': document.execCommand('paste'); break
-      case 'paste-special': document.execCommand('paste'); break
-      case 'clear': document.execCommand('delete'); break
-      case 'select-all': document.execCommand('selectAll'); break
+      case 'undo': editorCommands.undo(); break
+      case 'redo': editorCommands.redo(); break
+      case 'cut': editorCommands.cut(); break
+      case 'copy': editorCommands.copy(); break
+      case 'paste': editorCommands.paste(); break
+      case 'paste-special': editorCommands.paste(); break
+      case 'clear': editorCommands.delete(); break
+      case 'select-all': editorCommands.selectAll(); break
       case 'find': dialogDispatch({ type: 'OPEN', name: 'find' }); break
       case 'find-next': dialogDispatch({ type: 'OPEN', name: 'find' }); break
       case 'replace': dialogDispatch({ type: 'OPEN', name: 'replace' }); break
@@ -149,18 +153,122 @@ export default function MenuBar() {
       case 'toggle-darkmode': viewDispatch({ type: 'TOGGLE_DARK_MODE' }); break
       case 'options': dialogDispatch({ type: 'OPEN', name: 'options' }); break
       case 'date-time': dialogDispatch({ type: 'OPEN', name: 'dateTime' }); break
-      case 'object': alert('Object insertion not implemented in this version.'); break
+      case 'object': useMessageStore.dispatch({ type: 'SHOW', title: 'Insert Object', message: 'Object insertion is not implemented in this version.' }); break
       case 'font': dialogDispatch({ type: 'OPEN', name: 'font' }); break
-      case 'bullet': document.execCommand('insertUnorderedList'); break
+      case 'bullet': editorCommands.insertUnorderedList(); break
       case 'paragraph': dialogDispatch({ type: 'OPEN', name: 'paragraph' }); break
       case 'tabs': dialogDispatch({ type: 'OPEN', name: 'tabs' }); break
       case 'help-topics':
-        alert('WordPad Help\n\nThis is a clone of Windows 98 WordPad.\n\nUse the File menu to open and save documents.\nUse the Edit menu for copy, paste, and find operations.\nUse the Format menu to change fonts and paragraph settings.')
+        useMessageStore.dispatch({ type: 'SHOW', title: 'WordPad Help', message: 'This is a clone of Windows 98 WordPad.\n\nUse the File menu to open and save documents.\nUse the Edit menu for copy, paste, and find operations.\nUse the Format menu to change fonts and paragraph settings.' })
         break
       case 'about': dialogDispatch({ type: 'OPEN', name: 'about' }); break
     }
     closeAllMenus()
   }
+
+  // Focus the correct menu label when focusedMenuIndex changes
+  useEffect(() => {
+    if (focusedMenuIndex >= 0 && menuLabelRefs.current[focusedMenuIndex]) {
+      menuLabelRefs.current[focusedMenuIndex]?.focus()
+    }
+  }, [focusedMenuIndex])
+
+  // Focus the correct dropdown item when focusedItemIndex changes
+  useEffect(() => {
+    if (focusedItemIndex >= 0 && menuItemRefs.current[focusedItemIndex]) {
+      menuItemRefs.current[focusedItemIndex]?.focus()
+    }
+  }, [focusedItemIndex])
+
+  const handleMenuBarKeyDown = useCallback((e: React.KeyboardEvent) => {
+    const currentMenuIdx = menus.findIndex(m => m.id === activeMenu)
+
+    switch (e.key) {
+      case 'ArrowRight': {
+        e.preventDefault()
+        const nextIdx = activeMenu !== null
+          ? (currentMenuIdx + 1) % menus.length
+          : focusedMenuIndex >= 0 ? (focusedMenuIndex + 1) % menus.length : 0
+        setFocusedMenuIndex(nextIdx)
+        if (menuBarActive) openMenu(menus[nextIdx].id)
+        break
+      }
+      case 'ArrowLeft': {
+        e.preventDefault()
+        const prevIdx = activeMenu !== null
+          ? (currentMenuIdx - 1 + menus.length) % menus.length
+          : focusedMenuIndex >= 0 ? (focusedMenuIndex - 1 + menus.length) % menus.length : menus.length - 1
+        setFocusedMenuIndex(prevIdx)
+        if (menuBarActive) openMenu(menus[prevIdx].id)
+        break
+      }
+      case 'ArrowDown': {
+        e.preventDefault()
+        if (!menuBarActive && focusedMenuIndex >= 0) {
+          openMenu(menus[focusedMenuIndex].id)
+          setFocusedItemIndex(0)
+        } else if (activeMenu) {
+          const actionable = getActionableItems(menus[currentMenuIdx].items)
+          const nextItem = focusedItemIndex < actionable.length - 1 ? focusedItemIndex + 1 : 0
+          setFocusedItemIndex(nextItem)
+        }
+        break
+      }
+      case 'ArrowUp': {
+        e.preventDefault()
+        if (activeMenu) {
+          const actionable = getActionableItems(menus[currentMenuIdx].items)
+          const prevItem = focusedItemIndex > 0 ? focusedItemIndex - 1 : actionable.length - 1
+          setFocusedItemIndex(prevItem)
+        }
+        break
+      }
+      case 'Home': {
+        e.preventDefault()
+        if (activeMenu) {
+          setFocusedItemIndex(0)
+        } else {
+          setFocusedMenuIndex(0)
+        }
+        break
+      }
+      case 'End': {
+        e.preventDefault()
+        if (activeMenu) {
+          const actionable = getActionableItems(menus[currentMenuIdx].items)
+          setFocusedItemIndex(actionable.length - 1)
+        } else {
+          setFocusedMenuIndex(menus.length - 1)
+        }
+        break
+      }
+      case 'Enter':
+      case ' ': {
+        e.preventDefault()
+        if (activeMenu && focusedItemIndex >= 0) {
+          const actionable = getActionableItems(menus[currentMenuIdx].items)
+          const item = actionable[focusedItemIndex]
+          if (item && !('disabled' in item && item.disabled)) {
+            handleAction('checkbox' in item ? item.action : item.action)
+          }
+        } else if (focusedMenuIndex >= 0 && !menuBarActive) {
+          openMenu(menus[focusedMenuIndex].id)
+          setFocusedItemIndex(0)
+        }
+        break
+      }
+      case 'Escape': {
+        e.preventDefault()
+        if (menuBarActive) {
+          closeAllMenus()
+          if (focusedMenuIndex >= 0) {
+            menuLabelRefs.current[focusedMenuIndex]?.focus()
+          }
+        }
+        break
+      }
+    }
+  }, [activeMenu, menuBarActive, focusedMenuIndex, focusedItemIndex])
 
   useEffect(() => {
     function handleOutsideClick(e: MouseEvent) {
@@ -178,44 +286,74 @@ export default function MenuBar() {
   }, [menuBarActive])
 
   return (
-    <div className="menu-bar">
-      {menus.map(menu => (
-        <div
-          key={menu.id}
-          className={`menu-item ${activeMenu === menu.id ? 'active' : ''}`}
-          onMouseEnter={() => handleMenuItemHover(menu.id)}
-        >
-          <span
-            className="menu-label"
-            onMouseDown={e => { e.preventDefault(); handleMenuItemClick(menu.id) }}
+    <div className="menu-bar" role="menubar" onKeyDown={handleMenuBarKeyDown}>
+      {menus.map((menu, menuIdx) => {
+        return (
+          <div
+            key={menu.id}
+            className={`menu-item ${activeMenu === menu.id ? 'active' : ''}`}
+            onMouseEnter={() => handleMenuItemHover(menu.id)}
           >
-            {menu.label}
-          </span>
-          {activeMenu === menu.id && (
-            <div className="menu-dropdown">
-              {menu.items.map((item, i) => {
-                if ('separator' in item && item.separator) {
-                  return <div key={i} className="menu-separator" />
-                }
-                const mi = item as any
-                return (
-                  <div
-                    key={i}
-                    className={`menu-option ${mi.disabled ? 'disabled' : ''} ${mi.checkbox ? 'checkbox' : ''}`}
-                    onClick={() => !mi.disabled && handleAction(mi.action)}
-                  >
-                    {mi.checkbox && (
-                      <span className={`menu-check ${(viewState as any)[mi.checkedKey] ? 'visible' : ''}`}>&#10003;</span>
-                    )}
-                    <span className="menu-text">{mi.label}</span>
-                    {mi.shortcut && <span className="menu-shortcut">{mi.shortcut}</span>}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      ))}
+            <span
+              ref={el => { menuLabelRefs.current[menuIdx] = el }}
+              className="menu-label"
+              role="menuitem"
+              tabIndex={menuIdx === 0 ? 0 : -1}
+              aria-haspopup="true"
+              aria-expanded={activeMenu === menu.id}
+              onMouseDown={e => { e.preventDefault(); handleMenuItemClick(menu.id); setFocusedMenuIndex(menuIdx) }}
+              onFocus={() => setFocusedMenuIndex(menuIdx)}
+            >
+              {menu.label}
+            </span>
+            {activeMenu === menu.id && (
+              <div className="menu-dropdown" role="menu" aria-label={menu.label}>
+                {(() => {
+                  // Reset item refs for this dropdown
+                  menuItemRefs.current = []
+                  let actionIdx = -1
+                  return menu.items.map((item, i) => {
+                    if ('separator' in item) {
+                      return <div key={i} className="menu-separator" role="separator" />
+                    }
+                    actionIdx++
+                    const currentActionIdx = actionIdx
+                    if ('checkbox' in item) {
+                      return (
+                        <div
+                          key={i}
+                          ref={el => { menuItemRefs.current[currentActionIdx] = el }}
+                          className={`menu-option checkbox ${focusedItemIndex === currentActionIdx ? 'focused' : ''}`}
+                          role="menuitemcheckbox"
+                          aria-checked={viewState[item.checkedKey]}
+                          tabIndex={-1}
+                          onClick={() => handleAction(item.action)}
+                        >
+                          <span className={`menu-check ${viewState[item.checkedKey] ? 'visible' : ''}`}>&#10003;</span>
+                          <span className="menu-text">{item.label}</span>
+                        </div>
+                      )
+                    }
+                    return (
+                      <div
+                        key={i}
+                        ref={el => { menuItemRefs.current[currentActionIdx] = el }}
+                        className={`menu-option ${item.disabled ? 'disabled' : ''} ${focusedItemIndex === currentActionIdx ? 'focused' : ''}`}
+                        role="menuitem"
+                        tabIndex={-1}
+                        onClick={() => !item.disabled && handleAction(item.action)}
+                      >
+                        <span className="menu-text">{item.label}</span>
+                        {item.shortcut && <span className="menu-shortcut">{platformShortcut(item.shortcut)}</span>}
+                      </div>
+                    )
+                  })
+                })()}
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

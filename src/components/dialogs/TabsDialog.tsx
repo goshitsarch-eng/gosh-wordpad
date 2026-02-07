@@ -26,6 +26,7 @@ export default function TabsDialog() {
 
   return (
     <DialogBase title="Tabs" visible={dialogState.tabs} onClose={() => dialogDispatch({ type: 'CLOSE', name: 'tabs' })}>
+      <div style={{ padding: '4px 8px', color: '#808080', fontSize: '11px', fontStyle: 'italic' }}>Tab stops are not yet implemented.</div>
       <div className="dialog-row">
         <label>Tab stop position:</label>
         <input type="text" className="dialog-input" value={tabPosition} onChange={e => setTabPosition(e.target.value)} />

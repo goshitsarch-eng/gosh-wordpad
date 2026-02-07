@@ -1,8 +1,7 @@
 import { create } from './create'
 import type { SearchOptions } from '../types'
-import { appAPI } from '../electron-api'
 
-interface DocumentState {
+export interface DocumentState {
   content: string
   filePath: string | null
   isModified: boolean
@@ -12,28 +11,29 @@ interface DocumentState {
 
 type DocumentAction =
   | { type: 'MARK_MODIFIED' }
+  | { type: 'MARK_SAVED' }
   | { type: 'CLEAR' }
   | { type: 'SET_CONTENT'; content: string; filePath?: string }
+  | { type: 'SET_FILE_PATH'; filePath: string }
   | { type: 'UPDATE_SEARCH'; term: string; options: SearchOptions }
 
 function documentReducer(state: DocumentState, action: DocumentAction): DocumentState {
   switch (action.type) {
     case 'MARK_MODIFIED':
-      if (!state.isModified) {
-        appAPI.setDocumentModified(true)
-      }
       return { ...state, isModified: true }
+    case 'MARK_SAVED':
+      return { ...state, isModified: false }
     case 'CLEAR':
-      appAPI.setDocumentModified(false)
       return { ...state, content: '', filePath: null, isModified: false }
     case 'SET_CONTENT':
-      appAPI.setDocumentModified(false)
       return {
         ...state,
         content: action.content,
         filePath: action.filePath !== undefined ? action.filePath : state.filePath,
         isModified: false
       }
+    case 'SET_FILE_PATH':
+      return { ...state, filePath: action.filePath }
     case 'UPDATE_SEARCH':
       return { ...state, lastSearchTerm: action.term, lastSearchOptions: action.options }
     default:

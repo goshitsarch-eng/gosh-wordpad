@@ -15,6 +15,7 @@ export default function PageSetupDialog() {
 
   return (
     <DialogBase title="Page Setup" visible={dialogState.pageSetup} onClose={() => dialogDispatch({ type: 'CLOSE', name: 'pageSetup' })}>
+      <div style={{ padding: '4px 8px', color: '#808080', fontSize: '11px', fontStyle: 'italic' }}>Page setup options are not yet implemented.</div>
       <fieldset>
         <legend>Paper</legend>
         <div className="dialog-row">

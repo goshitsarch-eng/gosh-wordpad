@@ -21,9 +21,10 @@ export default function ParagraphDialog() {
     <DialogBase title="Paragraph" visible={dialogState.paragraph} onClose={() => dialogDispatch({ type: 'CLOSE', name: 'paragraph' })}>
       <fieldset>
         <legend>Indentation</legend>
-        <div className="paragraph-row"><label>Left:</label><input type="text" className="dialog-input small-input" value={leftIndent} onChange={e => setLeftIndent(e.target.value)} /><span className="unit">in</span></div>
-        <div className="paragraph-row"><label>Right:</label><input type="text" className="dialog-input small-input" value={rightIndent} onChange={e => setRightIndent(e.target.value)} /><span className="unit">in</span></div>
-        <div className="paragraph-row"><label>First line:</label><input type="text" className="dialog-input small-input" value={firstLine} onChange={e => setFirstLine(e.target.value)} /><span className="unit">in</span></div>
+        <div style={{ padding: '2px 0', color: '#808080', fontSize: '11px', fontStyle: 'italic' }}>Indentation is not yet implemented.</div>
+        <div className="paragraph-row"><label>Left:</label><input type="text" className="dialog-input small-input" value={leftIndent} onChange={e => setLeftIndent(e.target.value)} disabled /><span className="unit">in</span></div>
+        <div className="paragraph-row"><label>Right:</label><input type="text" className="dialog-input small-input" value={rightIndent} onChange={e => setRightIndent(e.target.value)} disabled /><span className="unit">in</span></div>
+        <div className="paragraph-row"><label>First line:</label><input type="text" className="dialog-input small-input" value={firstLine} onChange={e => setFirstLine(e.target.value)} disabled /><span className="unit">in</span></div>
       </fieldset>
       <fieldset>
         <legend>Alignment</legend>

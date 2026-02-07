@@ -1,4 +1,5 @@
 import React from 'react'
+import Tooltip from '@/components/ui/Tooltip'
 
 interface ToolbarButtonProps {
   onClick?: () => void
@@ -10,13 +11,14 @@ interface ToolbarButtonProps {
 
 export default function ToolbarButton({ onClick, title = '', active = false, disabled = false, children }: ToolbarButtonProps) {
   return (
-    <button
-      className={`toolbar-button ${active ? 'active' : ''}`}
-      disabled={disabled}
-      onClick={onClick}
-      title={title}
-    >
-      {children}
-    </button>
+    <Tooltip text={title}>
+      <button
+        className={`toolbar-button ${active ? 'active' : ''}`}
+        disabled={disabled}
+        onClick={onClick}
+      >
+        {children}
+      </button>
+    </Tooltip>
   )
 }

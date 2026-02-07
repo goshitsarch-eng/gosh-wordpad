@@ -19,6 +19,7 @@ import ColorDialog from '@/components/dialogs/ColorDialog'
 import PageSetupDialog from '@/components/dialogs/PageSetupDialog'
 import OptionsDialog from '@/components/dialogs/OptionsDialog'
 import AboutDialog from '@/components/dialogs/AboutDialog'
+import MessageDialog from '@/components/ui/MessageDialog'
 
 export default function App() {
   const [viewState, viewDispatch] = useViewStore()
@@ -28,8 +29,14 @@ export default function App() {
 
     appAPI.setContentGetter(() => {
       const editor = document.getElementById('editor')
-      return editor ? editor.innerText : ''
+      return editor ? editor.innerHTML : ''
     })
+
+    if (window.electronAPI?.onCloseRequested) {
+      window.electronAPI.onCloseRequested(() => {
+        appAPI.exitApp()
+      })
+    }
   }, [])
 
   return (
@@ -51,6 +58,7 @@ export default function App() {
       <PageSetupDialog />
       <OptionsDialog />
       <AboutDialog />
+      <MessageDialog />
     </>
   )
 }

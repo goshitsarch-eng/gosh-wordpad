@@ -1,4 +1,5 @@
 import { create } from './create'
+import { editorCommands } from '../editor-commands'
 
 interface EditorState {
   isBold: boolean
@@ -19,22 +20,22 @@ type EditorAction =
   | { type: 'SET_FONT_COLOR'; color: string }
 
 function queryFormatState(): Partial<EditorState> {
-  const isBold = document.queryCommandState('bold')
-  const isItalic = document.queryCommandState('italic')
-  const isUnderline = document.queryCommandState('underline')
-  const isStrikethrough = document.queryCommandState('strikeThrough')
-  const isBulletList = document.queryCommandState('insertUnorderedList')
+  const isBold = editorCommands.queryState('bold')
+  const isItalic = editorCommands.queryState('italic')
+  const isUnderline = editorCommands.queryState('underline')
+  const isStrikethrough = editorCommands.queryState('strikeThrough')
+  const isBulletList = editorCommands.queryState('insertUnorderedList')
 
   let alignment: 'left' | 'center' | 'right' = 'left'
-  if (document.queryCommandState('justifyCenter')) alignment = 'center'
-  else if (document.queryCommandState('justifyRight')) alignment = 'right'
+  if (editorCommands.queryState('justifyCenter')) alignment = 'center'
+  else if (editorCommands.queryState('justifyRight')) alignment = 'right'
 
   let fontFamily = 'Arial'
-  const fontName = document.queryCommandValue('fontName')
+  const fontName = editorCommands.queryValue('fontName')
   if (fontName) fontFamily = fontName.replace(/['"]/g, '')
 
   let fontSize = '10'
-  const fontSizeValue = document.queryCommandValue('fontSize')
+  const fontSizeValue = editorCommands.queryValue('fontSize')
   if (fontSizeValue) {
     const sizeMap: Record<string, string> = {
       '1': '8', '2': '10', '3': '12', '4': '14', '5': '18', '6': '24', '7': '36'
@@ -43,7 +44,7 @@ function queryFormatState(): Partial<EditorState> {
   }
 
   let fontColor = '#000000'
-  const color = document.queryCommandValue('foreColor')
+  const color = editorCommands.queryValue('foreColor')
   if (color) fontColor = color
 
   return { isBold, isItalic, isUnderline, isStrikethrough, isBulletList, alignment, fontFamily, fontSize, fontColor }
@@ -78,7 +79,6 @@ const initialState: EditorState = {
 
 export const useEditorStore = create(initialState, editorReducer)
 
-// Helper functions that exec commands and update state
 export function getFontSizeIndex(size: string): number {
   const sizeNum = parseInt(size)
   if (sizeNum <= 8) return 1
@@ -92,44 +92,44 @@ export function getFontSizeIndex(size: string): number {
 
 export const editorActions = {
   toggleBold() {
-    document.execCommand('bold')
+    editorCommands.bold()
     useEditorStore.dispatch({ type: 'UPDATE_FORMAT_STATE' })
   },
   toggleItalic() {
-    document.execCommand('italic')
+    editorCommands.italic()
     useEditorStore.dispatch({ type: 'UPDATE_FORMAT_STATE' })
   },
   toggleUnderline() {
-    document.execCommand('underline')
+    editorCommands.underline()
     useEditorStore.dispatch({ type: 'UPDATE_FORMAT_STATE' })
   },
   toggleStrikethrough() {
-    document.execCommand('strikeThrough')
+    editorCommands.strikeThrough()
     useEditorStore.dispatch({ type: 'UPDATE_FORMAT_STATE' })
   },
   setAlignment(align: 'left' | 'center' | 'right') {
     switch (align) {
-      case 'left': document.execCommand('justifyLeft'); break
-      case 'center': document.execCommand('justifyCenter'); break
-      case 'right': document.execCommand('justifyRight'); break
+      case 'left': editorCommands.justifyLeft(); break
+      case 'center': editorCommands.justifyCenter(); break
+      case 'right': editorCommands.justifyRight(); break
     }
     useEditorStore.dispatch({ type: 'UPDATE_FORMAT_STATE' })
   },
   toggleBullets() {
-    document.execCommand('insertUnorderedList')
+    editorCommands.insertUnorderedList()
     useEditorStore.dispatch({ type: 'UPDATE_FORMAT_STATE' })
   },
   setFontFamily(family: string) {
-    document.execCommand('fontName', false, family)
+    editorCommands.fontName(family)
     useEditorStore.dispatch({ type: 'SET_FONT_FAMILY', family })
   },
   setFontSize(size: string) {
     const sizeIndex = getFontSizeIndex(size)
-    document.execCommand('fontSize', false, sizeIndex.toString())
+    editorCommands.fontSize(sizeIndex.toString())
     useEditorStore.dispatch({ type: 'SET_FONT_SIZE', size })
   },
   setFontColor(color: string) {
-    document.execCommand('foreColor', false, color)
+    editorCommands.foreColor(color)
     useEditorStore.dispatch({ type: 'SET_FONT_COLOR', color })
   },
   updateFormatState() {

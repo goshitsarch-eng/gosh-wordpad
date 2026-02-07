@@ -12,7 +12,7 @@ export default function AboutDialog() {
           <div className="about-icon" />
           <div className="about-text">
             <div className="about-title">WordPad Clone</div>
-            <div className="about-version">Windows 98 Style</div>
+            <div className="about-version">Version {__APP_VERSION__}</div>
           </div>
         </div>
         <div className="about-info">

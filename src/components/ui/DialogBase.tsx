@@ -9,10 +9,31 @@ interface DialogBaseProps {
   children?: React.ReactNode
 }
 
+// Remember last position per dialog title across opens
+const savedPositions = new Map<string, { x: number; y: number }>()
+
 export default function DialogBase({ title, visible, onClose, large = false, width = '', children }: DialogBaseProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const initialRef = useRef({ x: 0, y: 0 })
+  const positionApplied = useRef(false)
+
+  // Apply saved position when dialog becomes visible
+  useEffect(() => {
+    if (!visible) {
+      positionApplied.current = false
+      return
+    }
+    if (positionApplied.current || !dialogRef.current) return
+    positionApplied.current = true
+
+    const saved = savedPositions.get(title)
+    if (saved) {
+      dialogRef.current.style.transform = 'none'
+      dialogRef.current.style.left = saved.x + 'px'
+      dialogRef.current.style.top = saved.y + 'px'
+    }
+  }, [visible, title])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).classList.contains('dialog-close')) return
@@ -31,17 +52,26 @@ export default function DialogBase({ title, visible, onClose, large = false, wid
     const handleMouseMove = (e: MouseEvent) => {
       if (!dialogRef.current) return
       e.preventDefault()
-      dialogRef.current.style.left = (e.clientX - initialRef.current.x) + 'px'
-      dialogRef.current.style.top = (e.clientY - initialRef.current.y) + 'px'
+      const x = e.clientX - initialRef.current.x
+      const y = e.clientY - initialRef.current.y
+      dialogRef.current.style.left = x + 'px'
+      dialogRef.current.style.top = y + 'px'
     }
-    const handleMouseUp = () => setIsDragging(false)
+    const handleMouseUp = () => {
+      setIsDragging(false)
+      // Save position when drag ends
+      if (dialogRef.current) {
+        const rect = dialogRef.current.getBoundingClientRect()
+        savedPositions.set(title, { x: rect.left, y: rect.top })
+      }
+    }
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [isDragging])
+  }, [isDragging, title])
 
   if (!visible) return null
 
@@ -52,10 +82,12 @@ export default function DialogBase({ title, visible, onClose, large = false, wid
         className={`dialog ${large ? 'dialog-large' : ''}`}
         style={width ? { width } : undefined}
         onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-label={title}
       >
         <div className="dialog-titlebar" onMouseDown={handleMouseDown}>
           <span className="dialog-title">{title}</span>
-          <button className="dialog-close" onClick={onClose}>&times;</button>
+          <button className="dialog-close" onClick={onClose} aria-label="Close">&times;</button>
         </div>
         <div className="dialog-content">
           {children}

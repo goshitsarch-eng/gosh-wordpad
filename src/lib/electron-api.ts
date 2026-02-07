@@ -1,3 +1,5 @@
+import { useDocumentStore } from './stores/document'
+
 export interface FileOpenedData {
   content: string
   filePath: string
@@ -11,6 +13,8 @@ interface ElectronAPI {
   writeFile: (filePath: string, content: string) => Promise<void>
   setTitle: (title: string) => Promise<void>
   quit: () => Promise<void>
+  forceClose: () => Promise<void>
+  onCloseRequested: (callback: () => void) => void
 }
 
 declare global {
@@ -23,8 +27,6 @@ declare global {
 const api = window.electronAPI
 
 class AppAPI {
-  private currentFilePath: string | null = null
-  private isDocumentModified = false
   private contentGetter: (() => string) | null = null
 
   setContentGetter(getter: () => string): void {
@@ -36,7 +38,8 @@ class AppAPI {
   }
 
   async newFile(): Promise<boolean> {
-    if (this.isDocumentModified) {
+    const { isModified } = useDocumentStore.getState()
+    if (isModified) {
       const result = await this.promptSaveChanges()
       if (result === 'cancel') return false
       if (result === 'save') {
@@ -44,14 +47,14 @@ class AppAPI {
         if (!saved) return false
       }
     }
-    this.currentFilePath = null
-    this.isDocumentModified = false
+    useDocumentStore.dispatch({ type: 'CLEAR' })
     await this.updateWindowTitle()
     return true
   }
 
   async openFile(): Promise<FileOpenedData | null> {
-    if (this.isDocumentModified) {
+    const { isModified } = useDocumentStore.getState()
+    if (isModified) {
       const result = await this.promptSaveChanges()
       if (result === 'cancel') return null
       if (result === 'save') {
@@ -64,8 +67,7 @@ class AppAPI {
     try {
       const data = await api.openFile()
       if (data) {
-        this.currentFilePath = data.filePath
-        this.isDocumentModified = false
+        useDocumentStore.dispatch({ type: 'SET_CONTENT', content: data.content, filePath: data.filePath })
         await this.updateWindowTitle()
       }
       return data
@@ -76,15 +78,16 @@ class AppAPI {
   }
 
   async saveFile(): Promise<boolean> {
-    if (!this.currentFilePath) {
+    const { filePath } = useDocumentStore.getState()
+    if (!filePath) {
       return await this.saveFileAs()
     }
 
     if (!api) return false
     try {
       const content = this.getContent()
-      await api.writeFile(this.currentFilePath, content)
-      this.isDocumentModified = false
+      await api.writeFile(filePath, content)
+      useDocumentStore.dispatch({ type: 'MARK_SAVED' })
       await this.updateWindowTitle()
       return true
     } catch (err) {
@@ -95,9 +98,10 @@ class AppAPI {
 
   async saveFileAs(): Promise<boolean> {
     if (!api) return false
-    const filePath = await api.saveDialog(this.currentFilePath || 'Document.rtf')
-    if (filePath) {
-      this.currentFilePath = filePath
+    const { filePath } = useDocumentStore.getState()
+    const savePath = await api.saveDialog(filePath || 'Document.html')
+    if (savePath) {
+      useDocumentStore.dispatch({ type: 'SET_FILE_PATH', filePath: savePath })
       return await this.saveFile()
     }
     return false
@@ -109,14 +113,16 @@ class AppAPI {
   }
 
   private getFileName(): string {
-    if (!this.currentFilePath) return 'Document'
-    const parts = this.currentFilePath.split(/[/\\]/)
+    const { filePath } = useDocumentStore.getState()
+    if (!filePath) return 'Document'
+    const parts = filePath.split(/[/\\]/)
     return parts[parts.length - 1] || 'Document'
   }
 
   async updateWindowTitle(): Promise<void> {
+    const { isModified } = useDocumentStore.getState()
     const fileName = this.getFileName()
-    const modified = this.isDocumentModified ? ' *' : ''
+    const modified = isModified ? ' *' : ''
     if (api) {
       try {
         await api.setTitle(`${fileName}${modified} - WordPad`)
@@ -127,31 +133,13 @@ class AppAPI {
     document.title = `${fileName}${modified} - WordPad`
   }
 
-  setDocumentModified(modified: boolean): void {
-    if (this.isDocumentModified !== modified) {
-      this.isDocumentModified = modified
-      this.updateWindowTitle()
-    }
-  }
-
-  getIsModified(): boolean {
-    return this.isDocumentModified
-  }
-
-  getCurrentFilePath(): string | null {
-    return this.currentFilePath
-  }
-
   print(): void {
     window.print()
   }
 
-  printPreview(): void {
-    window.print()
-  }
-
   async exitApp(): Promise<void> {
-    if (this.isDocumentModified) {
+    const { isModified } = useDocumentStore.getState()
+    if (isModified) {
       const result = await this.promptSaveChanges()
       if (result === 'cancel') return
       if (result === 'save') {
@@ -160,9 +148,14 @@ class AppAPI {
       }
     }
     if (api) {
-      await api.quit()
+      await api.forceClose()
     }
   }
 }
 
 export const appAPI = new AppAPI()
+
+// Subscribe to store changes to keep the window title in sync
+useDocumentStore.subscribe(() => {
+  appAPI.updateWindowTitle()
+})

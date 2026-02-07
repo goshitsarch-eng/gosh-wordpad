@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useDocumentStore } from '@/lib/stores/document'
 import { editorActions } from '@/lib/stores/editor'
+import { registerEditor } from '@/lib/editor-ref'
 import ContextMenu from './ContextMenu'
 
 export default function Editor() {
@@ -13,10 +14,13 @@ export default function Editor() {
   }, [])
 
   useEffect(() => {
-    if (!editorRef.current) return
-    editorRef.current.style.fontFamily = 'Arial, sans-serif'
-    editorRef.current.style.fontSize = '10pt'
-    editorRef.current.focus()
+    const el = editorRef.current
+    if (!el) return
+    registerEditor(el)
+    el.style.fontFamily = 'Arial, sans-serif'
+    el.style.fontSize = '10pt'
+    el.focus()
+    return () => registerEditor(null)
   }, [])
 
   function handleInput() {

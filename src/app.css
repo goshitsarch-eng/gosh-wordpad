@@ -265,6 +265,35 @@ body {
   border-right-color: #000080;
 }
 
+.icon-redo {
+  width: 16px;
+  height: 14px;
+  position: relative;
+}
+
+.icon-redo::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 3px;
+  width: 10px;
+  height: 6px;
+  border: 3px solid #000080;
+  border-radius: 8px 8px 0 0;
+  border-bottom: none;
+}
+
+.icon-redo::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 0;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+  border-left-color: #000080;
+}
+
 .icon-date-time {
   width: 16px;
   height: 16px;
@@ -469,6 +498,30 @@ body {
   border: 1px solid var(--win98-bg);
 }
 
+/* ==================== TOOLTIP ==================== */
+.tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.tooltip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  padding: 2px 5px;
+  background: #ffffe1;
+  border: 1px solid #000000;
+  color: #000000;
+  font-family: 'MS Sans Serif', 'Microsoft Sans Serif', Tahoma, Geneva, sans-serif;
+  font-size: 11px;
+  line-height: 14px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10000;
+}
+
 /* ==================== DIALOG ==================== */
 .dialog-overlay {
   position: fixed;
@@ -585,7 +638,8 @@ body {
   color: #000000;
 }
 
-.menu-option:hover:not(.disabled) {
+.menu-option:hover:not(.disabled),
+.menu-option.focused:not(.disabled) {
   background-color: var(--win98-highlight);
   color: var(--win98-highlight-text);
 }
@@ -773,7 +827,7 @@ body {
 
 .indent-marker {
   position: absolute;
-  cursor: ew-resize;
+  cursor: default;
   z-index: 10;
 }
 
@@ -876,6 +930,12 @@ body {
   word-wrap: break-word;
   cursor: text;
   user-select: text;
+}
+
+.editor:empty::before {
+  content: 'Type here or open a file...';
+  color: #808080;
+  pointer-events: none;
 }
 
 .editor::-webkit-scrollbar {

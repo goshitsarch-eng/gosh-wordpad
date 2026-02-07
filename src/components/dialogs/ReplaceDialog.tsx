@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import DialogBase from '@/components/ui/DialogBase'
 import Button from '@/components/ui/Button'
 import { useDialogStore } from '@/lib/stores/dialogs'
 import { useDocumentStore } from '@/lib/stores/document'
+import { useMessageStore } from '@/lib/stores/message'
+import { editorCommands } from '@/lib/editor-commands'
+import { getEditor } from '@/lib/editor-ref'
 
 function selectTextAtPosition(editor: HTMLElement, start: number, length: number) {
   const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT)
@@ -34,8 +37,14 @@ function escapeRegExp(string: string): string {
 
 export default function ReplaceDialog() {
   const [dialogState, dialogDispatch] = useDialogStore()
-  const [, docDispatch] = useDocumentStore()
+  const [docState, docDispatch] = useDocumentStore()
   const [findInput, setFindInput] = useState('')
+
+  useEffect(() => {
+    if (dialogState.replace && docState.lastSearchTerm) {
+      setFindInput(docState.lastSearchTerm)
+    }
+  }, [dialogState.replace])
   const [replaceInput, setReplaceInput] = useState('')
   const [matchCase, setMatchCase] = useState(false)
   const [wholeWord, setWholeWord] = useState(false)
@@ -43,7 +52,7 @@ export default function ReplaceDialog() {
   function findText() {
     if (!findInput) return
     docDispatch({ type: 'UPDATE_SEARCH', term: findInput, options: { matchCase, wholeWord } })
-    const editor = document.getElementById('editor')
+    const editor = getEditor()
     if (!editor) return
     const selection = window.getSelection()
     const range = selection?.rangeCount && selection.rangeCount > 0 ? selection.getRangeAt(0) : null
@@ -57,21 +66,21 @@ export default function ReplaceDialog() {
     }
     let foundPos = searchContent.indexOf(term, startPos)
     if (foundPos === -1 && startPos > 0) foundPos = searchContent.indexOf(term)
-    if (foundPos === -1) { alert('Cannot find "' + findInput + '"'); return }
+    if (foundPos === -1) { useMessageStore.dispatch({ type: 'SHOW', title: 'Replace', message: 'Cannot find "' + findInput + '"' }); return }
     selectTextAtPosition(editor, foundPos, term.length)
   }
 
   function replaceSelected() {
     const selection = window.getSelection()
     if (selection && selection.rangeCount > 0 && selection.toString().length > 0) {
-      document.execCommand('insertText', false, replaceInput)
+      editorCommands.insertText(replaceInput)
       docDispatch({ type: 'MARK_MODIFIED' })
     }
   }
 
   function replaceAll() {
     if (!findInput) return
-    const editor = document.getElementById('editor')
+    const editor = getEditor()
     if (!editor) return
     let flags = 'g'
     if (!matchCase) flags += 'i'
@@ -79,19 +88,20 @@ export default function ReplaceDialog() {
     const pattern = wholeWord ? `\\b${escapedFind}\\b` : escapedFind
     const regex = new RegExp(pattern, flags)
     const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT)
-    let didReplace = false
+    let count = 0
     while (walker.nextNode()) {
       const node = walker.currentNode as Text
       const original = node.textContent ?? ''
-      const updated = original.replace(regex, replaceInput)
-      if (updated !== original) {
-        node.textContent = updated
-        didReplace = true
+      const matches = original.match(regex)
+      if (matches) {
+        count += matches.length
+        node.textContent = original.replace(regex, replaceInput)
       }
     }
-    if (didReplace) {
+    if (count > 0) {
       docDispatch({ type: 'MARK_MODIFIED' })
     }
+    useMessageStore.dispatch({ type: 'SHOW', title: 'Replace', message: count > 0 ? `Replaced ${count} occurrence${count !== 1 ? 's' : ''}.` : 'No matches found.' })
   }
 
   return (

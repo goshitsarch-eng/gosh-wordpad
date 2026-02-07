@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react'
+import { editorCommands } from '@/lib/editor-commands'
+import { platformShortcut } from '@/lib/platform'
 
 interface ContextMenuProps {
   x: number
@@ -75,27 +77,32 @@ export default function ContextMenu({ x, y, visible, onClose }: ContextMenuProps
     {
       label: 'Undo',
       shortcut: 'Ctrl+Z',
-      action: () => { document.execCommand('undo'); onClose() },
+      action: () => { editorCommands.undo(); onClose() },
+    },
+    {
+      label: 'Redo',
+      shortcut: 'Ctrl+Y',
+      action: () => { editorCommands.redo(); onClose() },
     },
     { separator: true },
     {
       label: 'Cut',
       shortcut: 'Ctrl+X',
-      action: () => { document.execCommand('cut'); onClose() },
+      action: () => { editorCommands.cut(); onClose() },
     },
     {
       label: 'Copy',
       shortcut: 'Ctrl+C',
-      action: () => { document.execCommand('copy'); onClose() },
+      action: () => { editorCommands.copy(); onClose() },
     },
     {
       label: 'Paste',
       shortcut: 'Ctrl+V',
       action: () => {
         navigator.clipboard.readText().then(text => {
-          document.execCommand('insertText', false, text)
+          editorCommands.insertText(text)
         }).catch(() => {
-          document.execCommand('paste')
+          editorCommands.paste()
         })
         onClose()
       },
@@ -106,7 +113,7 @@ export default function ContextMenu({ x, y, visible, onClose }: ContextMenuProps
       action: () => {
         const selection = window.getSelection()
         if (selection && !selection.isCollapsed) {
-          document.execCommand('delete')
+          editorCommands.delete()
         }
         onClose()
       },
@@ -115,7 +122,7 @@ export default function ContextMenu({ x, y, visible, onClose }: ContextMenuProps
     {
       label: 'Select All',
       shortcut: 'Ctrl+A',
-      action: () => { document.execCommand('selectAll'); onClose() },
+      action: () => { editorCommands.selectAll(); onClose() },
     },
   ]
 
@@ -124,14 +131,16 @@ export default function ContextMenu({ x, y, visible, onClose }: ContextMenuProps
       ref={menuRef}
       className="context-menu"
       style={{ left: x, top: y }}
+      role="menu"
     >
       {items.map((item, i) =>
         'separator' in item && item.separator ? (
-          <div key={i} className="context-menu-separator" />
+          <div key={i} className="context-menu-separator" role="separator" />
         ) : (
           <div
             key={i}
             className="context-menu-item"
+            role="menuitem"
             onMouseDown={(e) => {
               e.preventDefault()
               ;(item as MenuItem).action()
@@ -139,7 +148,7 @@ export default function ContextMenu({ x, y, visible, onClose }: ContextMenuProps
           >
             <span className="context-menu-label">{(item as MenuItem).label}</span>
             {(item as MenuItem).shortcut && (
-              <span className="context-menu-shortcut">{(item as MenuItem).shortcut}</span>
+              <span className="context-menu-shortcut">{platformShortcut((item as MenuItem).shortcut!)}</span>
             )}
           </div>
         )

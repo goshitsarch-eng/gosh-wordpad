@@ -27,6 +27,7 @@ export function create<S, A>(initialState: S, reducer: (state: S, action: A) => 
 
   useStore.getState = getState
   useStore.dispatch = dispatch
+  useStore.subscribe = subscribe
 
   return useStore
 }

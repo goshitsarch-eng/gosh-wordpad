@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import DialogBase from '@/components/ui/DialogBase'
 import Button from '@/components/ui/Button'
 import { useDialogStore } from '@/lib/stores/dialogs'
 import { useDocumentStore } from '@/lib/stores/document'
+import { useMessageStore } from '@/lib/stores/message'
+import { getEditor } from '@/lib/editor-ref'
 
 function selectTextAtPosition(editor: HTMLElement, start: number, length: number) {
   const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT)
@@ -43,16 +45,22 @@ function selectTextAtPosition(editor: HTMLElement, start: number, length: number
 
 export default function FindDialog() {
   const [dialogState, dialogDispatch] = useDialogStore()
-  const [, docDispatch] = useDocumentStore()
+  const [docState, docDispatch] = useDocumentStore()
   const [findInput, setFindInput] = useState('')
   const [matchCase, setMatchCase] = useState(false)
   const [wholeWord, setWholeWord] = useState(false)
+
+  useEffect(() => {
+    if (dialogState.find && docState.lastSearchTerm) {
+      setFindInput(docState.lastSearchTerm)
+    }
+  }, [dialogState.find])
 
   function findText() {
     if (!findInput) return
     docDispatch({ type: 'UPDATE_SEARCH', term: findInput, options: { matchCase, wholeWord } })
 
-    const editor = document.getElementById('editor')
+    const editor = getEditor()
     if (!editor) return
 
     const selection = window.getSelection()
@@ -76,7 +84,7 @@ export default function FindDialog() {
 
     let foundPos = searchContent.indexOf(term, startPos)
     if (foundPos === -1 && startPos > 0) foundPos = searchContent.indexOf(term)
-    if (foundPos === -1) { alert('Cannot find "' + findInput + '"'); return }
+    if (foundPos === -1) { useMessageStore.dispatch({ type: 'SHOW', title: 'Find', message: 'Cannot find "' + findInput + '"' }); return }
 
     if (wholeWord) {
       const beforeChar = foundPos > 0 ? searchContent[foundPos - 1] : ' '

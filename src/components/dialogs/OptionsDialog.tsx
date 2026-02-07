@@ -22,6 +22,7 @@ export default function OptionsDialog() {
 
   return (
     <DialogBase title="Options" visible={dialogState.options} onClose={() => dialogDispatch({ type: 'CLOSE', name: 'options' })}>
+      <div style={{ padding: '4px 8px', color: '#808080', fontSize: '11px', fontStyle: 'italic' }}>Options are not yet implemented.</div>
       <div className="options-tabs">
         {tabs.map(tab => (
           <button key={tab.id} className={`options-tab ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>{tab.label}</button>

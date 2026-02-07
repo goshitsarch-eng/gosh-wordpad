@@ -1,13 +1,12 @@
 import ToolbarButton from '@/components/ui/ToolbarButton'
 import { useEditorStore, editorActions } from '@/lib/stores/editor'
 import { useDialogStore } from '@/lib/stores/dialogs'
+import { focusEditor } from '@/lib/editor-ref'
+import { platformShortcut } from '@/lib/platform'
+import { getAvailableFonts, FONT_SIZES } from '@/lib/fonts'
 
-const fonts = [
-  'Arial', 'Times New Roman', 'Courier New', 'Georgia', 'Verdana',
-  'Comic Sans MS', 'Impact', 'Trebuchet MS', 'Palatino Linotype',
-  'Lucida Console', 'Tahoma', 'MS Sans Serif'
-]
-const sizes = ['8','9','10','11','12','14','16','18','20','22','24','26','28','36','48','72']
+const fonts = getAvailableFonts()
+const sizes = FONT_SIZES
 
 export default function FormatBar() {
   const [state] = useEditorStore()
@@ -15,12 +14,12 @@ export default function FormatBar() {
 
   function handleFontChange(e: React.ChangeEvent<HTMLSelectElement>) {
     editorActions.setFontFamily(e.target.value)
-    document.getElementById('editor')?.focus()
+    focusEditor()
   }
 
   function handleSizeChange(e: React.ChangeEvent<HTMLSelectElement>) {
     editorActions.setFontSize(e.target.value)
-    document.getElementById('editor')?.focus()
+    focusEditor()
   }
 
   return (
@@ -35,13 +34,13 @@ export default function FormatBar() {
       </div>
       <div className="toolbar-separator" />
       <div className="format-group">
-        <ToolbarButton title="Bold (Ctrl+B)" active={state.isBold} onClick={() => { editorActions.toggleBold(); document.getElementById('editor')?.focus() }}>
+        <ToolbarButton title={platformShortcut("Bold (Ctrl+B)")} active={state.isBold} onClick={() => { editorActions.toggleBold(); focusEditor() }}>
           <span className="format-icon bold">B</span>
         </ToolbarButton>
-        <ToolbarButton title="Italic (Ctrl+I)" active={state.isItalic} onClick={() => { editorActions.toggleItalic(); document.getElementById('editor')?.focus() }}>
+        <ToolbarButton title={platformShortcut("Italic (Ctrl+I)")} active={state.isItalic} onClick={() => { editorActions.toggleItalic(); focusEditor() }}>
           <span className="format-icon italic">I</span>
         </ToolbarButton>
-        <ToolbarButton title="Underline (Ctrl+U)" active={state.isUnderline} onClick={() => { editorActions.toggleUnderline(); document.getElementById('editor')?.focus() }}>
+        <ToolbarButton title={platformShortcut("Underline (Ctrl+U)")} active={state.isUnderline} onClick={() => { editorActions.toggleUnderline(); focusEditor() }}>
           <span className="format-icon underline">U</span>
         </ToolbarButton>
         <ToolbarButton title="Font Color" onClick={() => dialogDispatch({ type: 'OPEN', name: 'color' })}>
@@ -50,19 +49,19 @@ export default function FormatBar() {
       </div>
       <div className="toolbar-separator" />
       <div className="format-group">
-        <ToolbarButton title="Align Left (Ctrl+L)" active={state.alignment === 'left'} onClick={() => { editorActions.setAlignment('left'); document.getElementById('editor')?.focus() }}>
+        <ToolbarButton title={platformShortcut("Align Left (Ctrl+L)")} active={state.alignment === 'left'} onClick={() => { editorActions.setAlignment('left'); focusEditor() }}>
           <div className="icon icon-align-left" />
         </ToolbarButton>
-        <ToolbarButton title="Center (Ctrl+E)" active={state.alignment === 'center'} onClick={() => { editorActions.setAlignment('center'); document.getElementById('editor')?.focus() }}>
+        <ToolbarButton title={platformShortcut("Center (Ctrl+E)")} active={state.alignment === 'center'} onClick={() => { editorActions.setAlignment('center'); focusEditor() }}>
           <div className="icon icon-align-center" />
         </ToolbarButton>
-        <ToolbarButton title="Align Right (Ctrl+R)" active={state.alignment === 'right'} onClick={() => { editorActions.setAlignment('right'); document.getElementById('editor')?.focus() }}>
+        <ToolbarButton title={platformShortcut("Align Right (Ctrl+R)")} active={state.alignment === 'right'} onClick={() => { editorActions.setAlignment('right'); focusEditor() }}>
           <div className="icon icon-align-right" />
         </ToolbarButton>
       </div>
       <div className="toolbar-separator" />
       <div className="format-group">
-        <ToolbarButton title="Bullets" active={state.isBulletList} onClick={() => { editorActions.toggleBullets(); document.getElementById('editor')?.focus() }}>
+        <ToolbarButton title="Bullets" active={state.isBulletList} onClick={() => { editorActions.toggleBullets(); focusEditor() }}>
           <div className="icon icon-bullets" />
         </ToolbarButton>
       </div>

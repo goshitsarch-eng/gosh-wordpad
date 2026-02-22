@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.3
+
+### Fixed
+- **AppImage launch crash**: Fix `electron-updater` ESM import — use default import since the package is CommonJS (`import pkg from 'electron-updater'`)
+
 ## 3.1.2
 
 ### Fixed

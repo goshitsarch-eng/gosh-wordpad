@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, session, shell } from 'electron'
-import { autoUpdater } from 'electron-updater'
+import pkg from 'electron-updater'
+const { autoUpdater } = pkg
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'

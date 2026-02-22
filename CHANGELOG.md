@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.2
+
+### Fixed
+- **macOS build**: Remove missing `entitlements.mac.plist`, `hardenedRuntime`, and `icon.icns` references that caused codesign failure in CI
+
 ## 3.1.1
 
 ### Added

@@ -1,6 +1,6 @@
 {
   "name": "gosh-wordpad-clone",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "description": "A faithful clone of Windows 98 WordPad built with React and Electron",
   "type": "module",
   "main": "dist-electron/main.js",
@@ -86,11 +86,6 @@
           ]
         }
       ],
-      "icon": "build/icon.icns",
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist",
       "category": "public.app-category.productivity"
     },
     "extraResources": [

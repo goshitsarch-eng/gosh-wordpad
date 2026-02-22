@@ -1,13 +1,13 @@
 {
   "name": "gosh-wordpad-clone",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "A faithful clone of Windows 98 WordPad built with React and Electron",
   "type": "module",
   "main": "dist-electron/main.js",
-  "homepage": "https://github.com/goshitsarch-eng/Gosh-Wordpad-Clone",
+  "homepage": "https://github.com/goshitsarch-eng/gosh-wordpad",
   "repository": {
     "type": "git",
-    "url": "https://github.com/goshitsarch-eng/Gosh-Wordpad-Clone.git"
+    "url": "https://github.com/goshitsarch-eng/gosh-wordpad.git"
   },
   "scripts": {
     "dev": "vite",
@@ -36,6 +36,8 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
+    "@fontsource/noto-sans": "^5.2.10",
+    "electron-updater": "^6.8.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
@@ -91,7 +93,14 @@
       "entitlementsInherit": "build/entitlements.mac.plist",
       "category": "public.app-category.productivity"
     },
-    "publish": null,
+    "extraResources": [
+      { "from": "assets/fonts", "to": "fonts", "filter": ["*.ttf"] }
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "goshitsarch-eng",
+      "repo": "gosh-wordpad"
+    },
     "linux": {
       "target": [
         "AppImage",

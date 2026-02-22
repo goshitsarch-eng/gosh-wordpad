@@ -1,10 +1,29 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, session, shell } from 'electron'
+import { autoUpdater } from 'electron-updater'
 import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
 import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+
+// Bundle fontconfig for Linux systems missing fonts (e.g., Bazzite, Fedora Atomic).
+// Must run before any BrowserWindow is created so Chromium's Skia picks up the config.
+if (process.platform === 'linux') {
+  const fontsDir = path.join(process.resourcesPath, 'fonts')
+  if (fs.existsSync(fontsDir)) {
+    const conf = `<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<fontconfig>
+  <include ignore_missing="yes">/etc/fonts/fonts.conf</include>
+  <dir>${fontsDir}</dir>
+</fontconfig>`
+    const confPath = path.join(os.tmpdir(), `gosh-wordpad-fonts-${process.pid}.conf`)
+    fs.writeFileSync(confPath, conf)
+    process.env.FONTCONFIG_FILE = confPath
+  }
+}
 
 const allowedPaths = new Set<string>()
 
@@ -77,11 +96,53 @@ app.whenReady().then(() => {
   })
 
   createWindow()
+
+  // Auto-update via electron-updater:
+  // - Windows: Works with NSIS builds
+  // - Linux: Requires AppImage (deb/rpm users get updates via package manager)
+  // - macOS: Requires code signing with Apple Developer certificate
+  if (!process.env.VITE_DEV_SERVER_URL) {
+    const isAppImage = !!process.env.APPIMAGE
+    const isWindows = process.platform === 'win32'
+    if (isAppImage || isWindows) {
+      autoUpdater.autoDownload = true
+      autoUpdater.autoInstallOnAppQuit = true
+
+      autoUpdater.on('update-downloaded', () => {
+        dialog.showMessageBox(mainWindow!, {
+          type: 'info',
+          title: 'Update Ready',
+          message: 'A new version has been downloaded. Restart to apply the update.',
+          buttons: ['Restart', 'Later']
+        }).then((result) => {
+          if (result.response === 0) {
+            autoUpdater.quitAndInstall()
+          }
+        })
+      })
+
+      autoUpdater.on('error', (err) => {
+        console.log('Auto-update error:', err.message)
+      })
+
+      autoUpdater.checkForUpdatesAndNotify().catch((err: Error) => {
+        console.log('Update check failed:', err.message)
+      })
+    }
+  }
 })
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
+
+// Clean up temporary fontconfig file on quit
+if (process.platform === 'linux') {
+  app.on('quit', () => {
+    const confPath = path.join(os.tmpdir(), `gosh-wordpad-fonts-${process.pid}.conf`)
+    try { fs.unlinkSync(confPath) } catch {}
+  })
+}
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow()

@@ -47,7 +47,8 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      sandbox: true
     }
   })
 
@@ -58,9 +59,14 @@ function createWindow() {
     }
   })
 
-  // Open external links in the user's default browser (#29)
+  // Open external links in the user's default browser (#29).
+  // Guard against javascript:/file:/data: URIs smuggled in via opened documents —
+  // only http(s) is handed off to the OS.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    try {
+      const { protocol } = new URL(url)
+      if (protocol === 'https:' || protocol === 'http:') shell.openExternal(url)
+    } catch { /* invalid URL — drop */ }
     return { action: 'deny' }
   })
 
@@ -141,7 +147,7 @@ app.on('window-all-closed', () => {
 if (process.platform === 'linux') {
   app.on('quit', () => {
     const confPath = path.join(os.tmpdir(), `gosh-wordpad-fonts-${process.pid}.conf`)
-    try { fs.unlinkSync(confPath) } catch {}
+    try { fs.unlinkSync(confPath) } catch { /* best-effort cleanup */ }
   })
 }
 

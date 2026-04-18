@@ -33,27 +33,31 @@ export default function StatusBar() {
   const [stats, setStats] = useState({ line: 1, col: 1, words: 0 })
 
   useEffect(() => {
-    function update() {
-      setStats(getEditorStats())
-    }
-
     const editor = getEditor()
     if (!editor) return
 
-    editor.addEventListener('input', update)
-    editor.addEventListener('keyup', update)
-    editor.addEventListener('mouseup', update)
-    editor.addEventListener('click', update)
-    document.addEventListener('selectionchange', update)
+    let frame = 0
+    function schedule() {
+      if (frame) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        setStats(getEditorStats())
+      })
+    }
 
-    update()
+    editor.addEventListener('input', schedule)
+    editor.addEventListener('keyup', schedule)
+    editor.addEventListener('mouseup', schedule)
+    document.addEventListener('selectionchange', schedule)
+
+    schedule()
 
     return () => {
-      editor.removeEventListener('input', update)
-      editor.removeEventListener('keyup', update)
-      editor.removeEventListener('mouseup', update)
-      editor.removeEventListener('click', update)
-      document.removeEventListener('selectionchange', update)
+      if (frame) cancelAnimationFrame(frame)
+      editor.removeEventListener('input', schedule)
+      editor.removeEventListener('keyup', schedule)
+      editor.removeEventListener('mouseup', schedule)
+      document.removeEventListener('selectionchange', schedule)
     }
   }, [])
 

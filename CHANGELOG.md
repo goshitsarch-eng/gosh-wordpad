@@ -1,5 +1,34 @@
 # Changelog
 
+## 3.2.0
+
+### Security
+- **Electron 40 → 41.2.1**: resolves 18+ HIGH-severity CVEs (context-isolation bypass via VideoFrame, use-after-free in permission/PowerMonitor/download callbacks, HTTP header injection, registry-key injection on Windows, AppleScript injection on macOS, and more)
+- **Sandbox enabled** on the BrowserWindow renderer (`webPreferences.sandbox: true`) alongside existing `contextIsolation`/`nodeIntegration: false`
+- **`shell.openExternal` scheme-checked**: `setWindowOpenHandler` now only hands off `http(s):` URLs, blocking `javascript:` / `file:` / `data:` URIs smuggled via opened HTML documents
+- **CSP aligned**: the HTML `<meta>` CSP now matches the session HTTP-header CSP (adds `connect-src 'self' ws://localhost:*`) so Vite HMR isn't blocked and the two policies can't drift
+- `npm audit`: 0 vulnerabilities (was 18+ HIGH on Electron 40 alone plus transitive HIGH/MODERATE in brace-expansion, minimatch, lodash, flatted, ajv, xmldom)
+
+### Performance
+- **Tooltip** cleans up its hover timer on unmount (prevents timer accumulation when toolbars re-render)
+- **StatusBar** coalesces its five input/selection listeners through a single `requestAnimationFrame` scheduler; stats recompute at most once per frame instead of once per event
+- **DialogBase** rAF-throttles `mousemove` during drag so position writes coalesce per frame
+- **Editor** drops the redundant `onClick` handler (`onMouseUp` already covers it) — one fewer reducer dispatch per click
+- **ToolbarButton** wrapped in `React.memo` so format-state changes no longer re-render the full toolbar cascade
+- **Replace All** snapshots text nodes and processes them in 200-node batches via `requestIdleCallback` (fallback: `setTimeout`), keeping the UI responsive on large documents
+
+### Dependencies
+- electron 40 → 41.2.1
+- vite 7 → 8.0.8, @vitejs/plugin-react 5 → 6.0.1
+- typescript 5 → 6.0.3 (added `ignoreDeprecations: "6.0"` for `baseUrl`; added ambient `*.css` module declarations now required by TS 6 for side-effect CSS imports)
+- eslint 9 → 10.2.1, @eslint/js 9 → 10.0.1, typescript-eslint → 8.58.2
+- jsdom 28 → 29.0.2, vitest 4.0 → 4.1.4
+- react / react-dom 19.2.4 → 19.2.5, @types/react → 19.2.14
+- electron-builder → 26.8.1, prettier → 3.8.3
+
+### Fixed
+- **Test setup**: Node 22.4+ ships a built-in Web Storage API that shadowed jsdom's on `window`, breaking the view-store tests with `localStorage.clear is not a function`. Setup now installs an in-memory Storage polyfill on both the global and window so tests behave identically across Node versions.
+
 ## 3.1.3
 
 ### Fixed

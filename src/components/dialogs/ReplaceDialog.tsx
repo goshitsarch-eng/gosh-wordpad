@@ -87,21 +87,50 @@ export default function ReplaceDialog() {
     const escapedFind = escapeRegExp(findInput)
     const pattern = wholeWord ? `\\b${escapedFind}\\b` : escapedFind
     const regex = new RegExp(pattern, flags)
+
+    // Snapshot all text nodes up front so we can yield between batches without
+    // the live TreeWalker being invalidated by our own mutations.
     const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT)
+    const nodes: Text[] = []
+    while (walker.nextNode()) nodes.push(walker.currentNode as Text)
+
+    const BATCH = 200
+    let cursor = 0
     let count = 0
-    while (walker.nextNode()) {
-      const node = walker.currentNode as Text
-      const original = node.textContent ?? ''
-      const matches = original.match(regex)
-      if (matches) {
-        count += matches.length
-        node.textContent = original.replace(regex, replaceInput)
+
+    const finish = () => {
+      if (count > 0) docDispatch({ type: 'MARK_MODIFIED' })
+      useMessageStore.dispatch({
+        type: 'SHOW',
+        title: 'Replace',
+        message: count > 0 ? `Replaced ${count} occurrence${count !== 1 ? 's' : ''}.` : 'No matches found.',
+      })
+    }
+
+    const schedule: (cb: () => void) => void =
+      typeof (window as Window & typeof globalThis & { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback === 'function'
+        ? (cb) => { (window as Window & { requestIdleCallback: (cb: () => void) => number }).requestIdleCallback(cb) }
+        : (cb) => { setTimeout(cb, 0) }
+
+    function processBatch() {
+      const end = Math.min(cursor + BATCH, nodes.length)
+      for (; cursor < end; cursor++) {
+        const node = nodes[cursor]
+        const original = node.textContent ?? ''
+        // Reset global regex state between nodes.
+        regex.lastIndex = 0
+        const matches = original.match(regex)
+        if (matches) {
+          count += matches.length
+          node.textContent = original.replace(regex, replaceInput)
+        }
       }
+      if (cursor < nodes.length) schedule(processBatch)
+      else finish()
     }
-    if (count > 0) {
-      docDispatch({ type: 'MARK_MODIFIED' })
-    }
-    useMessageStore.dispatch({ type: 'SHOW', title: 'Replace', message: count > 0 ? `Replaced ${count} occurrence${count !== 1 ? 's' : ''}.` : 'No matches found.' })
+
+    if (nodes.length === 0) finish()
+    else processBatch()
   }
 
   return (

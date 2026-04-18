@@ -9,7 +9,7 @@ interface ToolbarButtonProps {
   children?: React.ReactNode
 }
 
-export default function ToolbarButton({ onClick, title = '', active = false, disabled = false, children }: ToolbarButtonProps) {
+function ToolbarButton({ onClick, title = '', active = false, disabled = false, children }: ToolbarButtonProps) {
   return (
     <Tooltip text={title}>
       <button
@@ -22,3 +22,5 @@ export default function ToolbarButton({ onClick, title = '', active = false, dis
     </Tooltip>
   )
 }
+
+export default React.memo(ToolbarButton)

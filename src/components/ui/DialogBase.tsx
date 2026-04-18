@@ -49,13 +49,21 @@ export default function DialogBase({ title, visible, onClose, large = false, wid
 
   useEffect(() => {
     if (!isDragging) return
+    let frame = 0
+    let pendingX = 0
+    let pendingY = 0
     const handleMouseMove = (e: MouseEvent) => {
       if (!dialogRef.current) return
       e.preventDefault()
-      const x = e.clientX - initialRef.current.x
-      const y = e.clientY - initialRef.current.y
-      dialogRef.current.style.left = x + 'px'
-      dialogRef.current.style.top = y + 'px'
+      pendingX = e.clientX - initialRef.current.x
+      pendingY = e.clientY - initialRef.current.y
+      if (frame) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        if (!dialogRef.current) return
+        dialogRef.current.style.left = pendingX + 'px'
+        dialogRef.current.style.top = pendingY + 'px'
+      })
     }
     const handleMouseUp = () => {
       setIsDragging(false)
@@ -68,6 +76,7 @@ export default function DialogBase({ title, visible, onClose, large = false, wid
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
     return () => {
+      if (frame) cancelAnimationFrame(frame)
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }

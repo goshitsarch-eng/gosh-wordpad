@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 
 interface TooltipProps {
   text: string
@@ -20,6 +20,10 @@ export default function Tooltip({ text, children }: TooltipProps) {
       timerRef.current = null
     }
     setVisible(false)
+  }, [])
+
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current)
   }, [])
 
   return (

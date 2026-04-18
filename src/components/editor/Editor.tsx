@@ -27,15 +27,14 @@ export default function Editor() {
     dispatch({ type: 'MARK_MODIFIED' })
   }
 
+  // onKeyUp fires per keystroke and onMouseUp fires on every click (before
+  // onClick), so these two entry points cover all selection/caret changes
+  // without the redundant third dispatch the previous onClick handler added.
   function handleKeyUp() {
     editorActions.updateFormatState()
   }
 
   function handleMouseUp() {
-    editorActions.updateFormatState()
-  }
-
-  function handleClick() {
     editorActions.updateFormatState()
   }
 
@@ -68,7 +67,6 @@ export default function Editor() {
         onInput={handleInput}
         onKeyUp={handleKeyUp}
         onMouseUp={handleMouseUp}
-        onClick={handleClick}
         onKeyDown={handleKeyDown}
         onContextMenu={handleContextMenu}
         role="textbox"
